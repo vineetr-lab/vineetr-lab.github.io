@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Acme Security</title></head>
+<body>
+<nav><a href="/">Home</a> · <a href="/pricing.html">Pricing</a> · <a href="/security.html">Security</a> · <a href="/changelog.html">Changelog</a></nav>
+<main>
+<h1>Acme Security</h1>
+<p>This page is deliberately long and is not expected to change during a demo. It is the control: whatever else happens, this page should report as unchanged on every run.</p><h2>Data handling</h2><p>Content is encrypted in transit and at rest. Each tenant is isolated at the storage layer, and no tenant key is shared between environments.</p><h2>Access</h2><p>Access is granted per workspace. Permissions are evaluated on every request rather than cached at session start, so a revocation takes effect immediately.</p><h2>Crawling</h2><p>Our crawler identifies itself and honours robots.txt. It reads a sitemap when one is published and otherwise fetches pages conditionally, so an unchanged page costs almost nothing to re-check.</p>
+</main>
+<footer><p>kb-sync test site. Edit any page to exercise change detection.</p></footer>
+</body>
+</html>

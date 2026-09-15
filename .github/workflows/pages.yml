@@ -1,0 +1,74 @@
+name: Deploy site
+
+# Builds sitemap.xml with a PER-PAGE <lastmod> taken from each file's own last
+# commit, then publishes to GitHub Pages.
+#
+# Why generate it rather than commit a static one: a hand-written sitemap carries a
+# lastmod that never moves, so a knowledge-base sync takes its cheap path and never
+# notices an edit. A build-time-for-every-page sitemap has the opposite problem —
+# every page looks touched on every deploy, so every page is re-fetched. Per-file
+# git dates are what a real generator (Yoast, Hugo, Next) produces, and they are
+# what makes "edit one page, re-fetch exactly one page" true.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history: shallow clones have no per-file dates
+
+      - name: Generate sitemap.xml
+        run: |
+          BASE="https://vineetr-lab.github.io"
+          {
+            echo '<?xml version="1.0" encoding="UTF-8"?>'
+            echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+            for f in $(ls *.html | sort); do
+              # ISO 8601 UTC, seconds precision — the form the sitemap spec wants
+              LM=$(git log -1 --format=%cd --date=format-local:%Y-%m-%dT%H:%M:%S+00:00 -- "$f")
+              if [ "$f" = "index.html" ]; then LOC="$BASE/"; else LOC="$BASE/$f"; fi
+              echo "  <url><loc>${LOC}</loc><lastmod>${LM}</lastmod></url>"
+            done
+            echo '</urlset>'
+          } > sitemap.xml
+          cat sitemap.xml
+        env:
+          TZ: UTC
+
+      - name: Point robots.txt at it
+        run: |
+          cat > robots.txt <<'EOF'
+          User-agent: *
+          Allow: /
+
+          Sitemap: https://vineetr-lab.github.io/sitemap.xml
+          EOF
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
